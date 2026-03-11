@@ -23,7 +23,7 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime        7.9.0  --quiet
+          haxelib install lime               --quiet
           haxelib install openfl             --quiet
           haxelib install flixel             --quiet
           haxelib install flixel-addons      --quiet
