@@ -44,7 +44,6 @@ jobs:
           haxelib run lime config JAVA_HOME        $JAVA_HOME
 
       - name: Build APK
-      - name: Build APK
         run: |
           mv Project.xml project.xml
           haxelib run lime build android -release
