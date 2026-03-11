@@ -1,54 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
-	<!-- _________________________ Application Settings _________________________ -->
 
-	<app title="Friday Night Funkin': Kade Engine" file="Kade Engine" packageName="com.kadedev.kadeengine" package="com.kadedev.kadeengine" main="Main" version="0.2.7.1" company="kadedev" />
+	<meta
+		title="FNF: Kade Engine"
+		package="com.kadedev.kadeengine"
+		version="1.0.0"
+		company="kadedev"
+		build="1"
+	/>
 
-	<!--Switch Export with Unique ApplicationID and Icon-->
-	<set name="APP_ID" value="0x0100f6c013bbc000" />
+	<app
+		main="Main"
+		path="export/android"
+		file="KadeEngine"
+		preloader="flixel.system.FlxPreloader"
+	/>
 
-	<haxedef name="LINC_LUA_RELATIVE_DYNAMIC_LIB"/>
+	<set name="BUILD_DIR" value="export/android/debug"   if="debug"   />
+	<set name="BUILD_DIR" value="export/android/release"  unless="debug" />
 
-	<!--The flixel preloader is not accurate in Chrome. You can use it regularly if you embed the swf into a html file
-		or you can set the actual size of your file manually at "FlxPreloaderBase-onUpdate-bytesTotal"-->
-	<!-- <app preloader="Preloader" resizable="true" /> -->
-	<app preloader="flixel.system.FlxPreloader" />
+	<!-- ══════════════════════════ JANELA ═════════════════════════════════ -->
 
-	<!--Minimum without FLX_NO_GAMEPAD: 11.8, without FLX_NO_NATIVE_CURSOR: 11.2-->
-	<set name="SWF_VERSION" value="11.8" />
+	<!-- Resolução base — OpenFL escala automaticamente no device -->
+	<window
+		width="1280"
+		height="720"
+		fps="60"
+		background="#000000"
+		hardware="true"
+		vsync="false"
+	/>
 
-	<!-- ____________________________ Window Settings ___________________________ -->
+	<!-- Forçar landscape, fullscreen, sem redimensionamento no Android -->
+	<window
+		if="android"
+		orientation="landscape"
+		fullscreen="true"
+		width="0"
+		height="0"
+		resizable="false"
+		antialiasing="false"
+	/>
 
-	<!--These window settings apply to all targets-->
-	<window width="1280" height="720" fps="" background="#000000" hardware="true" vsync="false" />
+	<!-- ═══════════════════════ FONTES (sempre embed) ═════════════════════ -->
 
-	<!--HTML5-specific-->
-	<window if="html5" resizable="true" />
+	<assets path="assets/fonts" embed="true" />
 
-	<!--Desktop-specific-->
-	<window if="desktop" orientation="landscape" fullscreen="false" resizable="true" vsync="false"/>
+	<!-- ═══════════════════════════ ASSETS ════════════════════════════════ -->
+	<!--
+		IMPORTANTE: todos os <assets> usam embed="true" ou omitem embed
+		(o padrão no Android é incluir dentro do APK via AssetManager).
+		NÃO usamos embed="false" — isso evita qualquer extração para
+		armazenamento externo.
 
-	<!--Mobile-specific-->
-	<window if="mobile" orientation="landscape" fullscreen="true" width="0" height="0" resizable="false"/>
+		Arquivos .mp3 são usados no Android (o .ogg é excluído).
+	-->
 
-	<!--Switch-specific-->
-	<window if="switch" orientation="landscape" fullscreen="true" width="0" height="0" resizable="true" />
+	<!-- Assets de pré-carregamento (HUD, fontes, sprites globais) -->
+	<assets path="assets/preload" rename="assets" exclude="*.ogg" />
 
-	<!-- _____________________________ Path Settings ____________________________ -->
+	<!-- Bibliotecas de conteúdo — preload=true embute tudo no APK principal -->
+	<!-- Se o APK ficar grande demais (>100 MB) considere Play Asset Delivery -->
 
-	<set name="BUILD_DIR" value="export/debug" if="debug" />
-	<set name="BUILD_DIR" value="export/release" unless="debug" />
-	<set name="BUILD_DIR" value="export/32bit" if="32bit" />
+	<define name="PRELOAD_ALL" />
 
-	<classpath name="source" />
-
-	<assets path="assets/preload" rename="assets" exclude="*.ogg" if="web"/>
-	<assets path="assets/preload" rename="assets" exclude="*.mp3" unless="web"/>
-	
-	<!-- <define name="PRELOAD_ALL" /> -->
-	<define name="PRELOAD_ALL" unless="web" />
-	<define name="NO_PRELOAD_ALL" unless="PRELOAD_ALL"/>
-	
 	<section if="PRELOAD_ALL">
 		<library name="songs"    preload="true" />
 		<library name="shared"   preload="true" />
@@ -59,150 +74,169 @@
 		<library name="week4"    preload="true" />
 		<library name="week5"    preload="true" />
 		<library name="week6"    preload="true" />
-		<library name="sm"    preload="true" />
+		<library name="sm"       preload="true" />
 	</section>
-	
-	<section if="NO_PRELOAD_ALL">
-		<library name="songs"    preload="false" />
-		<library name="shared"   preload="false" />
-		<library name="tutorial" preload="false" />
-		<library name="week1"    preload="false" />
-		<library name="week2"    preload="false" />
-		<library name="week3"    preload="false" />
-		<library name="week4"    preload="false" />
-		<library name="week5"    preload="false" />
-		<library name="week6"    preload="false" />
-		<library name="sm"    preload="false" />
-	</section>
-	
-	<assets path="assets/songs"    library="songs"    exclude="*.ogg" if="web"/>
-	<assets path="assets/songs"    library="songs"    exclude="*.mp3" unless="web"/>
-	<assets path="assets/shared"   library="shared"   exclude="*.ogg" if="web"/>
-	<assets path="assets/shared"   library="shared"   exclude="*.mp3" unless="web"/>
-	<assets path="assets/tutorial" library="tutorial" exclude="*.ogg" if="web"/>
-	<assets path="assets/tutorial" library="tutorial" exclude="*.mp3" unless="web"/>
-	<assets path="assets/week1"    library="week1"    exclude="*.ogg" if="web"/>
-	<assets path="assets/week1"    library="week1"    exclude="*.mp3" unless="web"/>
-	<assets path="assets/week2"    library="week2"    exclude="*.ogg" if="web"/>
-	<assets path="assets/week2"    library="week2"    exclude="*.mp3" unless="web"/>
-	<assets path="assets/week3"    library="week3"    exclude="*.ogg" if="web"/>
-	<assets path="assets/week3"    library="week3"    exclude="*.mp3" unless="web"/>
-	<assets path="assets/week4"    library="week4"    exclude="*.ogg" if="web"/>
-	<assets path="assets/week4"    library="week4"    exclude="*.mp3" unless="web"/>
-	<assets path="assets/week5"    library="week5"    exclude="*.ogg" if="web"/>
-	<assets path="assets/week5"    library="week5"    exclude="*.mp3" unless="web"/>
-	<assets path="assets/week6"    library="week6"    exclude="*.ogg" if="web"/>
-	<assets path="assets/week6"    library="week6"    exclude="*.mp3" unless="web"/>
-	<assets path="assets/sm"    library="sm"    exclude="*.ogg" if="web"/>
-	<assets path="assets/sm"    library="sm"    exclude="*.mp3" unless="web"/>
 
-	<assets path='example_mods' rename='mods' embed='false'/>
-	<assets path='art/readme.txt' rename='do NOT readme.txt' />
-	<assets path='LICENSE' rename='LICENSE.txt' />
-	<!-- <template path='mods' /> -->
-	
-	<!-- <assets path="CHANGELOG.md" rename='changelog.txt'/> -->
+	<assets path="assets/songs"    library="songs"    exclude="*.ogg" />
+	<assets path="assets/shared"   library="shared"   exclude="*.ogg" />
+	<assets path="assets/tutorial" library="tutorial" exclude="*.ogg" />
+	<assets path="assets/week1"    library="week1"    exclude="*.ogg" />
+	<assets path="assets/week2"    library="week2"    exclude="*.ogg" />
+	<assets path="assets/week3"    library="week3"    exclude="*.ogg" />
+	<assets path="assets/week4"    library="week4"    exclude="*.ogg" />
+	<assets path="assets/week5"    library="week5"    exclude="*.ogg" />
+	<assets path="assets/week6"    library="week6"    exclude="*.ogg" />
+	<assets path="assets/sm"       library="sm"       exclude="*.ogg" />
 
-	<!-- NOTE FOR FUTURE SELF SINCE FONTS ARE ALWAYS FUCKY 
-		TO FIX ONE OF THEM, I CONVERTED IT TO OTF. DUNNO IF YOU NEED TO
-		THEN UHHH I USED THE NAME OF THE FONT WITH SETFORMAT() ON THE TEXT!!!
-		NOT USING A DIRECT THING TO THE ASSET!!!
+	<!--
+		Mods REMOVIDOS no Android — embed="false" causa extração para disco.
+		Modcharts Lua também desativados (sem suporte Android).
 	-->
-	<assets path="assets/fonts" embed='true'/>
-	<!-- _______________________________ Libraries ______________________________ -->
 
-	<haxelib name="flixel" />
-	<haxedev set='webgl' />
+	<!-- ═══════════════════════ ÍCONES ════════════════════════════════════ -->
 
-	<!--In case you want to use the addons package-->
-	<haxelib name="flixel-addons" />
-	<haxelib name="hscript" />
+	<icon path="art/icon8.png"   size="8"   />
+	<icon path="art/icon16.png"  size="16"  />
+	<icon path="art/icon32.png"  size="32"  />
+	<icon path="art/icon64.png"  size="64"  />
+	<icon path="art/icon128.png" size="128" />
+	<icon path="art/icon256.png" size="256" />
+	<icon path="art/icon512.png" size="512" />
+	<icon path="art/iconOG.png"  />
 
-	<haxelib name="actuate" />
-	<haxelib name="extension-webm"/> <!-- Make sure to use https://github.com/KadeDev/extension-webm/ -->
+	<!-- ═══════════════════════ BIBLIOTECAS HAXE ═════════════════════════ -->
 
-	<!--In case you want to use the ui package-->
-	<haxelib name="flixel-ui" />
-	<haxelib name="faxe" if='switch'/>
-	<haxelib name="polymod"/>
-	<haxelib name="discord_rpc" if="desktop"/>
-	<haxelib name="linc_luajit" if="desktop"/>
-	<haxelib name="hxvm-luajit" if="desktop"/>
-	<!-- <haxelib name="hxcpp-debug-server" if="desktop"/> -->
+	<haxelib name="flixel"         />
+	<haxelib name="flixel-addons"  />
+	<haxelib name="flixel-ui"      />
+	<haxelib name="hscript"        />
 
-	<!-- <haxelib name="markdown" /> -->
-	<!-- <haxelib name="HtmlParser" /> -->
+	<!--
+		Bibliotecas incompatíveis com Android — DESATIVADAS:
+		  • actuate        → desktop/web only
+		  • extension-webm → sem suporte Android (usa código nativo Windows)
+		  • discord_rpc    → sem SDK Android
+		  • linc_luajit    → NDK incompatível no Android (usa FEATURE_LUAMODCHART)
+		  • hxvm-luajit    → idem
+		  • polymod        → requer acesso ao filesystem nativo (sem suporte)
+	-->
 
-	<!--In case you want to use nape with flixel-->
-	<!--<haxelib name="nape-haxe4" />-->
+	<!-- ═══════════════════════ ANDROID SDK ══════════════════════════════ -->
 
-	<!-- ______________________________ Haxedefines _____________________________ -->
+	<!--
+		Google Play exige targetSdkVersion >= 34 desde agosto de 2024.
+		minSdkVersion 21 = Android 5.0 (cobre +98% dos dispositivos ativos).
+	-->
+	<android
+		minimum-sdk-version="21"
+		target-sdk-version="34"
+		build-tools-version="34.0.0"
+		install-location="internalOnly"
+	/>
 
-	<!--Enable the Flixel core recording system-->
-	<!--<haxedef name="FLX_RECORD" />-->
+	<!-- ═══════════════════════ PERMISSÕES ANDROID ═══════════════════════ -->
 
-	<!--Disable the right and middle mouse buttons-->
-	<!-- <haxedef name="FLX_NO_MOUSE_ADVANCED" /> -->
+	<!--
+		Somente as permissões estritamente necessárias.
+		Google Play penaliza apps com permissões desnecessárias.
+	-->
 
-	<!--Disable the native cursor API on Flash-->
-	<!--<haxedef name="FLX_NO_NATIVE_CURSOR" />-->
+	<!-- Salvar e carregar replays / scores -->
+	<permission name="android.permission.READ_MEDIA_AUDIO"   />
+	<!-- Vibrar no device ao errar nota (opcional, boa UX) -->
+	<permission name="android.permission.VIBRATE"            />
+	<!-- Manter CPU ativa durante gameplay (evita drops de FPS por sleep) -->
+	<permission name="android.permission.WAKE_LOCK"          />
 
-	<!--Optimise inputs, be careful you will get null errors if you don't use conditionals in your game-->
-	<!-- <haxedef name="FLX_NO_MOUSE" if="mobile" /> -->
-	<!-- <haxedef name="FLX_NO_KEYBOARD" if="mobile" /> -->
-	<!-- <haxedef name="FLX_NO_TOUCH" if="desktop" /> -->
-	<!--<haxedef name="FLX_NO_GAMEPAD" />-->
+	<!--
+		READ/WRITE_EXTERNAL_STORAGE são considerados "perigosos" pelo Google Play
+		e exigem justificativa na ficha da loja (Declaração de Permissões).
+		Se não precisar salvar arquivos fora do app, mantenha comentado.
+	-->
+	<!-- <permission name="android.permission.READ_EXTERNAL_STORAGE"  /> -->
+	<!-- <permission name="android.permission.WRITE_EXTERNAL_STORAGE" /> -->
 
-	<!--Disable the Flixel core sound tray-->
-	<!--<haxedef name="FLX_NO_SOUND_TRAY" />-->
+	<!-- ═══════════════════════ HAXEDEFINES ══════════════════════════════ -->
 
-	<!--Disable the Flixel sound management code-->
-	<!--<haxedef name="FLX_NO_SOUND_SYSTEM" />-->
+	<!-- Input mobile: usa FlxTouch; desativa mouse e keyboard físico -->
+	<haxedef name="FLX_NO_MOUSE"    />
+	<haxedef name="FLX_NO_KEYBOARD" />
 
-	<!--Disable the Flixel core focus lost screen-->
+	<!-- Desativa UI de foco perdido (desnecessária no Android) -->
 	<haxedef name="FLX_NO_FOCUS_LOST_SCREEN" />
 
-	<!--Disable the Flixel core debugger. Automatically gets set whenever you compile in release mode!-->
+	<!-- Sem debug overlay em release -->
 	<haxedef name="FLX_NO_DEBUG" unless="debug" />
 
-	<haxedef name="HXCPP_GC_BIG_BLOCKS"/>
+	<!-- GC de blocos grandes — melhora perf em devices com pouca RAM -->
+	<haxedef name="HXCPP_GC_BIG_BLOCKS" />
 
-	<!--Enable this for Nape release builds for a serious peformance improvement-->
+	<!-- Nape physics release (perf) -->
 	<haxedef name="NAPE_RELEASE_BUILD" unless="debug" />
 
-	<!-- _________________________________ Custom _______________________________ -->
+	<!-- FEATURES — somente as suportadas no Android -->
+	<!-- Discord: DESATIVADO (sem desktop SDK)           -->
+	<!-- <haxedef name="FEATURE_DISCORD" />              -->
 
-	<!--Place custom nodes like icons here (higher priority to override the HaxeFlixel icon)-->
-	
-	<icon path="art/icon8.png" size='8'/>
-	<icon path="art/icon16.png" size='16'/>
-	<icon path="art/icon32.png" size='32'/>
-	<icon path="art/icon64.png" size='64'/>
-	<icon path="art/icon128.png" size='128'/>
-	<icon path="art/icon256.png" size='256'/>
-	<icon path="art/icon512.png" size='512'/>
-	<icon path="art/iconOG.png" />
+	<!-- Filesystem: DESATIVADO (assets embutidos no APK) -->
+	<!-- <haxedef name="FEATURE_FILESYSTEM" />           -->
 
+	<!-- Lua Modcharts: DESATIVADO (linc_luajit não suporta Android) -->
+	<!-- <haxedef name="FEATURE_LUAMODCHART" />          -->
+
+	<!-- WebM: DESATIVADO (extension-webm não compila para Android) -->
+	<!-- <haxedef name="FEATURE_WEBM" />                 -->
+
+	<!-- StepMania: DESATIVADO (requer filesystem) -->
+	<!-- <haxedef name="FEATURE_STEPMANIA" />            -->
+
+	<!-- Multithreading: ATIVADO (Android é cpp target) -->
+	<haxedef name="FEATURE_MULTITHREADING" />
+
+	<!-- Mods: DESATIVADO no Android -->
+	<!-- <haxedef name="FEATURE_MODCORE" />              -->
+
+	<!-- Sinaliza para o código-fonte que é build Android -->
+	<haxedef name="KADE_ANDROID" />
+
+	<!-- ═════════════════════ OTIMIZAÇÕES DE BUILD ═══════════════════════ -->
+
+	<!-- Remove traces em release (reduz tamanho do binário) -->
 	<haxeflag name="--no-traces" unless="debug" />
-	<haxeflag name="--dce full" if="release" />
 
-  <!-- Use defines to ensure compile-time definitions have readable context. -->
-  <!-- Allowed inputs are mobile,desktop,web,ios,android,windows,mac,linux,switch,html5,cpp,neko,flash,js -->
+	<!-- Dead Code Elimination completo em release -->
+	<haxeflag name="--dce full" unless="debug" />
 
-  <!-- Defines whether the Discord client should be enabled. Only works on desktop. -->
-  <haxedef name="FEATURE_DISCORD" if="desktop" />
-  <!-- Defines whether the file system can be read/written directly. Does not work in browser. -->
-  <haxedef name="FEATURE_FILESYSTEM" if="desktop" />
-  <!-- Defines whether Lua Modcharts should be enabled. Only works on Windows. -->
-  <haxedef name="FEATURE_LUAMODCHART" if="windows" />
-  <!-- Defines whether WebM videos should be enabled. Currently only enabled on Windows. -->
-  <haxedef name="FEATURE_WEBM" if="windows" />
-  <!-- Defines whether StepMania files can be loaded. -->
-  <haxedef name="FEATURE_STEPMANIA" if="desktop" />
-  <!-- Defines whether the Thread class can be used. -->
-  <haxedef name="FEATURE_MULTITHREADING" if="cpp" />
+	<!-- Otimização máxima do compilador C++ -->
+	<haxedef name="HXCPP_OPTIMIZE_LEVEL" value="3" unless="debug" />
 
-  <!-- Defines whether the Mods menu will display before launching. -->
-  <haxedef name="FEATURE_MODCORE" if="desktop" />
+	<!-- ═══════════════════ ASSINATURA (RELEASE) ═════════════════════════
+		Para publicar na Google Play, configure sua keystore:
+
+		1. Gere a keystore (uma vez):
+		   keytool -genkey -v -keystore kadeengine.keystore
+		              -alias kadeengine -keyalg RSA -keysize 2048
+		              -validity 10000
+
+		2. Descomente e preencha abaixo:
+
+	<certificate
+		path="kadeengine.keystore"
+		alias="kadeengine"
+		password="SUA_SENHA"
+		alias-password="SUA_SENHA_DO_ALIAS"
+		if="release"
+	/>
+
+		Ou use variáveis de ambiente para não expor senhas no repositório:
+
+	<certificate
+		path="${KEYSTORE_PATH}"
+		alias="${KEYSTORE_ALIAS}"
+		password="${KEYSTORE_PASSWORD}"
+		alias-password="${KEYSTORE_ALIAS_PASSWORD}"
+		if="release"
+	/>
+	═══════════════════════════════════════════════════════════════════════ -->
 
 </project>
