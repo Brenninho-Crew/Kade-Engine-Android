@@ -23,13 +23,14 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime               --quiet
-          haxelib install openfl             --quiet
-          haxelib install flixel             --quiet
-          haxelib install flixel-addons      --quiet
-          haxelib install flixel-ui          --quiet
-          haxelib install hscript            --quiet
-          haxelib install actuate            --quiet
+          haxelib install lime          7.9.0   --quiet
+          haxelib install openfl        9.1.0   --quiet
+          haxelib install flixel        4.11.0  --quiet
+          haxelib install flixel-addons 2.11.0  --quiet
+          haxelib install flixel-ui     2.4.0   --quiet
+          haxelib install hscript       2.5.0   --quiet
+          haxelib install actuate       1.9.0   --quiet
+          haxelib git polymod https://github.com/MasterEric/polymod.git --quiet
           haxelib run lime setup
 
       - uses: android-actions/setup-android@v3
