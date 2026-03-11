@@ -44,7 +44,7 @@ jobs:
           haxelib run lime config JAVA_HOME        $JAVA_HOME
 
       - name: Build APK
-        run: haxelib run lime build android -release
+        run: haxelib run lime build Project.xml android -release
 
       - uses: actions/upload-artifact@v4
         with:
