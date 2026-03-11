@@ -11,6 +11,14 @@ using StringTools;
 
 class Paths
 {
+	/**
+	 * Extensão de áudio por plataforma:
+	 *   web     → mp3  (único formato garantido nos browsers)
+	 *   android → ogg  (suporte nativo, menor tamanho)
+	 *   desktop → ogg
+	 *
+	 * Nunca lemos do disco — tudo via OpenFlAssets (APK AssetManager no Android).
+	 */
 	inline public static var SOUND_EXT = #if web "mp3" #else "ogg" #end;
 
 	static var currentLevel:String;
@@ -40,23 +48,26 @@ class Paths
 	}
 
 	/**
-	 * For a given key and library for an image, returns the corresponding BitmapData.
-	 		* We can probably move the cache handling here.
-	 * @param key 
-	 * @param library 
-	 * @return BitmapData
+	 * Carrega uma imagem a partir do APK (via OpenFlAssets) ou do cache de bitmap.
+	 *
+	 * No Android todos os assets ficam dentro do APK;
+	 * o OpenFlAssets.getBitmapData() usa o AssetManager nativo — nenhum arquivo
+	 * é extraído para o armazenamento interno/externo do dispositivo.
+	 *
+	 * O cache de disco (Caching.bitmapData) só existe em desktop onde
+	 * FEATURE_FILESYSTEM está definido.
 	 */
 	static public function loadImage(key:String, ?library:String):FlxGraphic
 	{
 		var path = image(key, library);
 
+		// Cache de disco — disponível somente em desktop.
 		#if FEATURE_FILESYSTEM
 		if (Caching.bitmapData != null)
 		{
 			if (Caching.bitmapData.exists(key))
 			{
 				Debug.logTrace('Loading image from bitmap cache: $key');
-				// Get data from cache.
 				return Caching.bitmapData.get(key);
 			}
 		}
@@ -74,34 +85,37 @@ class Paths
 		}
 	}
 
+	/**
+	 * Lê e faz parse de um JSON via OpenFlAssets.getText().
+	 * Funciona em todas as plataformas sem tocar no disco.
+	 */
 	static public function loadJSON(key:String, ?library:String):Dynamic
 	{
 		var rawJson = OpenFlAssets.getText(Paths.json(key, library)).trim();
 
-		// Perform cleanup on files that have bad data at the end.
+		// Remove lixo no final do arquivo (arquivos mal-formados de alguns mods).
 		while (!rawJson.endsWith("}"))
-		{
 			rawJson = rawJson.substr(0, rawJson.length - 1);
-		}
 
 		try
 		{
-			// Attempt to parse and return the JSON data.
 			return Json.parse(rawJson);
 		}
 		catch (e)
 		{
 			Debug.logError("AN ERROR OCCURRED parsing a JSON file.");
 			Debug.logError(e.message);
-
-			// Return null.
 			return null;
 		}
 	}
 
+	// ── Helpers de path ────────────────────────────────────────────────────────
+
 	static public function getLibraryPath(file:String, library = "preload")
 	{
-		return if (library == "preload" || library == "default") getPreloadPath(file); else getLibraryPathForce(file, library);
+		return (library == "preload" || library == "default")
+			? getPreloadPath(file)
+			: getLibraryPathForce(file, library);
 	}
 
 	inline static function getLibraryPathForce(file:String, library:String)
@@ -114,11 +128,18 @@ class Paths
 		return 'assets/$file';
 	}
 
+	// ── Atalhos de tipo ────────────────────────────────────────────────────────
+
 	inline static public function file(file:String, ?library:String, type:AssetType = TEXT)
 	{
 		return getPath(file, type, library);
 	}
 
+	/**
+	 * Lua modcharts — disponíveis somente em desktop (FEATURE_LUAMODCHART).
+	 * No Android esses métodos compilam para null-safe stubs.
+	 */
+	#if FEATURE_LUAMODCHART
 	inline static public function lua(key:String, ?library:String)
 	{
 		return getPath('data/$key.lua', TEXT, library);
@@ -128,6 +149,10 @@ class Paths
 	{
 		return getPath('data/$key.png', IMAGE, library);
 	}
+	#else
+	inline static public function lua(key:String, ?library:String):String    return null;
+	inline static public function luaImage(key:String, ?library:String):String return null;
+	#end
 
 	inline static public function txt(key:String, ?library:String)
 	{
@@ -144,6 +169,8 @@ class Paths
 		return getPath('data/$key.json', TEXT, library);
 	}
 
+	// ── Áudio ──────────────────────────────────────────────────────────────────
+
 	static public function sound(key:String, ?library:String)
 	{
 		return getPath('sounds/$key.$SOUND_EXT', SOUND, library);
@@ -159,59 +186,60 @@ class Paths
 		return getPath('music/$key.$SOUND_EXT', MUSIC, library);
 	}
 
-	inline static public function voices(song:String)
+	inline static public function voices(song:String):Null<String>
 	{
-		var songLowercase = StringTools.replace(song, " ", "-").toLowerCase();
-		switch (songLowercase)
-		{
-			case 'dad-battle':
-				songLowercase = 'dadbattle';
-			case 'philly-nice':
-				songLowercase = 'philly';
-			case 'm.i.l.f':
-				songLowercase = 'milf';
-		}
+		var songLowercase = _normalizeSongName(song);
 		var result = 'songs:assets/songs/${songLowercase}/Voices.$SOUND_EXT';
-		// Return null if the file does not exist.
 		return doesSoundAssetExist(result) ? result : null;
 	}
 
-	inline static public function inst(song:String)
+	inline static public function inst(song:String):String
 	{
-		var songLowercase = StringTools.replace(song, " ", "-").toLowerCase();
-		switch (songLowercase)
-		{
-			case 'dad-battle':
-				songLowercase = 'dadbattle';
-			case 'philly-nice':
-				songLowercase = 'philly';
-			case 'm.i.l.f':
-				songLowercase = 'milf';
-		}
+		var songLowercase = _normalizeSongName(song);
 		return 'songs:assets/songs/${songLowercase}/Inst.$SOUND_EXT';
 	}
 
-	static public function listSongsToCache()
+	/**
+	 * Normaliza o nome de uma música para o padrão de pasta.
+	 * Centralizado aqui para evitar duplicação entre voices() e inst().
+	 */
+	static function _normalizeSongName(song:String):String
 	{
-		// We need to query OpenFlAssets, not the file system, because of Polymod.
-		var soundAssets = OpenFlAssets.list(AssetType.MUSIC).concat(OpenFlAssets.list(AssetType.SOUND));
+		var s = song.replace(" ", "-").toLowerCase();
+		return switch (s)
+		{
+			case 'dad-battle':  'dadbattle';
+			case 'philly-nice': 'philly';
+			case 'm.i.l.f':     'milf';
+			default:            s;
+		};
+	}
 
-		// TODO: Maybe rework this to pull from a text file rather than scan the list of assets.
-		var songNames = [];
+	// ── Listagem de songs ──────────────────────────────────────────────────────
+
+	/**
+	 * Retorna os nomes de todas as músicas disponíveis.
+	 *
+	 * Usa OpenFlAssets.list() — no Android isso lê o manifesto de assets
+	 * dentro do APK sem extrair nada. Compatível com Polymod no desktop.
+	 */
+	static public function listSongsToCache():Array<String>
+	{
+		var soundAssets = OpenFlAssets.list(AssetType.MUSIC)
+			.concat(OpenFlAssets.list(AssetType.SOUND));
+
+		var songNames:Array<String> = [];
 
 		for (sound in soundAssets)
 		{
-			// Parse end-to-beginning to support mods.
 			var path = sound.split('/');
 			path.reverse();
 
-			var fileName = path[0];
 			var songName = path[1];
 
 			if (path[2] != 'songs')
 				continue;
 
-			// Remove duplicates.
 			if (songNames.indexOf(songName) != -1)
 				continue;
 
@@ -221,17 +249,22 @@ class Paths
 		return songNames;
 	}
 
-	static public function doesSoundAssetExist(path:String)
+	// ── Checagens de existência ────────────────────────────────────────────────
+
+	static public function doesSoundAssetExist(path:String):Bool
 	{
 		if (path == null || path == "")
 			return false;
-		return OpenFlAssets.exists(path, AssetType.SOUND) || OpenFlAssets.exists(path, AssetType.MUSIC);
+		return OpenFlAssets.exists(path, AssetType.SOUND)
+			|| OpenFlAssets.exists(path, AssetType.MUSIC);
 	}
 
-	inline static public function doesTextAssetExist(path:String)
+	inline static public function doesTextAssetExist(path:String):Bool
 	{
 		return OpenFlAssets.exists(path, AssetType.TEXT);
 	}
+
+	// ── Imagens e atlas ────────────────────────────────────────────────────────
 
 	inline static public function image(key:String, ?library:String)
 	{
@@ -240,27 +273,30 @@ class Paths
 
 	inline static public function font(key:String)
 	{
+		// Fontes são sempre embed=true no Project.xml, lidas via AssetManager.
 		return 'assets/fonts/$key';
 	}
 
 	static public function getSparrowAtlas(key:String, ?library:String, ?isCharacter:Bool = false)
 	{
-		if (isCharacter)
-		{
-			return FlxAtlasFrames.fromSparrow(loadImage('characters/$key', library), file('images/characters/$key.xml', library));
-		}
-		return FlxAtlasFrames.fromSparrow(loadImage(key, library), file('images/$key.xml', library));
+		return isCharacter
+			? FlxAtlasFrames.fromSparrow(
+				loadImage('characters/$key', library),
+				file('images/characters/$key.xml', library))
+			: FlxAtlasFrames.fromSparrow(
+				loadImage(key, library),
+				file('images/$key.xml', library));
 	}
 
-	/**
-	 * Senpai in Thorns uses this instead of Sparrow and IDK why.
-	 */
+	/** Senpai in Thorns usa PackerAtlas em vez de Sparrow. */
 	inline static public function getPackerAtlas(key:String, ?library:String, ?isCharacter:Bool = false)
 	{
-		if (isCharacter)
-		{
-			return FlxAtlasFrames.fromSpriteSheetPacker(loadImage('characters/$key', library), file('images/characters/$key.txt', library));
-		}
-		return FlxAtlasFrames.fromSpriteSheetPacker(loadImage(key, library), file('images/$key.txt', library));
+		return isCharacter
+			? FlxAtlasFrames.fromSpriteSheetPacker(
+				loadImage('characters/$key', library),
+				file('images/characters/$key.txt', library))
+			: FlxAtlasFrames.fromSpriteSheetPacker(
+				loadImage(key, library),
+				file('images/$key.txt', library));
 	}
 }
