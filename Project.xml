@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
 
+	<!-- ══════════════════════ IDENTIDADE ════════════════════════════════ -->
 	<meta
 		title="FNF: Kade Engine"
 		package="com.kadedev.kadeengine"
@@ -19,9 +20,11 @@
 	<set name="BUILD_DIR" value="export/android/debug"   if="debug"   />
 	<set name="BUILD_DIR" value="export/android/release"  unless="debug" />
 
-	<!-- ══════════════════════════ JANELA ═════════════════════════════════ -->
+	<!-- ══════════════════ FONTES DO CÓDIGO HAXE ═════════════════════════ -->
+	<!-- SEM ISSO O LIME REJEITA O PROJETO -->
+	<source path="source" />
 
-	<!-- Resolução base — OpenFL escala automaticamente no device -->
+	<!-- ══════════════════════════ JANELA ════════════════════════════════ -->
 	<window
 		width="1280"
 		height="720"
@@ -30,8 +33,6 @@
 		hardware="true"
 		vsync="false"
 	/>
-
-	<!-- Forçar landscape, fullscreen, sem redimensionamento no Android -->
 	<window
 		if="android"
 		orientation="landscape"
@@ -42,28 +43,15 @@
 		antialiasing="false"
 	/>
 
-	<!-- ═══════════════════════ FONTES (sempre embed) ═════════════════════ -->
-
+	<!-- ══════════════════════ ASSETS ════════════════════════════════════ -->
+	<!-- Fontes sempre embutidas -->
 	<assets path="assets/fonts" embed="true" />
 
-	<!-- ═══════════════════════════ ASSETS ════════════════════════════════ -->
-	<!--
-		IMPORTANTE: todos os <assets> usam embed="true" ou omitem embed
-		(o padrão no Android é incluir dentro do APK via AssetManager).
-		NÃO usamos embed="false" — isso evita qualquer extração para
-		armazenamento externo.
-
-		Arquivos .mp3 são usados no Android (o .ogg é excluído).
-	-->
-
-	<!-- Assets de pré-carregamento (HUD, fontes, sprites globais) -->
+	<!-- Preload — .ogg excluído, Android usa .mp3 -->
 	<assets path="assets/preload" rename="assets" exclude="*.ogg" />
 
-	<!-- Bibliotecas de conteúdo — preload=true embute tudo no APK principal -->
-	<!-- Se o APK ficar grande demais (>100 MB) considere Play Asset Delivery -->
-
+	<!-- Bibliotecas — preload=true embute no APK, nada é extraído -->
 	<define name="PRELOAD_ALL" />
-
 	<section if="PRELOAD_ALL">
 		<library name="songs"    preload="true" />
 		<library name="shared"   preload="true" />
@@ -88,13 +76,7 @@
 	<assets path="assets/week6"    library="week6"    exclude="*.ogg" />
 	<assets path="assets/sm"       library="sm"       exclude="*.ogg" />
 
-	<!--
-		Mods REMOVIDOS no Android — embed="false" causa extração para disco.
-		Modcharts Lua também desativados (sem suporte Android).
-	-->
-
-	<!-- ═══════════════════════ ÍCONES ════════════════════════════════════ -->
-
+	<!-- ══════════════════════ ÍCONES ════════════════════════════════════ -->
 	<icon path="art/icon8.png"   size="8"   />
 	<icon path="art/icon16.png"  size="16"  />
 	<icon path="art/icon32.png"  size="32"  />
@@ -104,29 +86,15 @@
 	<icon path="art/icon512.png" size="512" />
 	<icon path="art/iconOG.png"  />
 
-	<!-- ═══════════════════════ BIBLIOTECAS HAXE ═════════════════════════ -->
+	<!-- ══════════════════ BIBLIOTECAS HAXE ══════════════════════════════ -->
+	<haxelib name="flixel"        />
+	<haxelib name="flixel-addons" />
+	<haxelib name="flixel-ui"     />
+	<haxelib name="hscript"       />
+	<!-- actuate, extension-webm, discord_rpc, linc_luajit,
+	     hxvm-luajit, polymod: incompatíveis com Android — omitidos -->
 
-	<haxelib name="flixel"         />
-	<haxelib name="flixel-addons"  />
-	<haxelib name="flixel-ui"      />
-	<haxelib name="hscript"        />
-
-	<!--
-		Bibliotecas incompatíveis com Android — DESATIVADAS:
-		  • actuate        → desktop/web only
-		  • extension-webm → sem suporte Android (usa código nativo Windows)
-		  • discord_rpc    → sem SDK Android
-		  • linc_luajit    → NDK incompatível no Android (usa FEATURE_LUAMODCHART)
-		  • hxvm-luajit    → idem
-		  • polymod        → requer acesso ao filesystem nativo (sem suporte)
-	-->
-
-	<!-- ═══════════════════════ ANDROID SDK ══════════════════════════════ -->
-
-	<!--
-		Google Play exige targetSdkVersion >= 34 desde agosto de 2024.
-		minSdkVersion 21 = Android 5.0 (cobre +98% dos dispositivos ativos).
-	-->
+	<!-- ══════════════════ ANDROID SDK ═══════════════════════════════════ -->
 	<android
 		minimum-sdk-version="21"
 		target-sdk-version="34"
@@ -134,109 +102,23 @@
 		install-location="internalOnly"
 	/>
 
-	<!-- ═══════════════════════ PERMISSÕES ANDROID ═══════════════════════ -->
+	<!-- ══════════════════ PERMISSÕES ════════════════════════════════════ -->
+	<permission name="android.permission.VIBRATE"   />
+	<permission name="android.permission.WAKE_LOCK" />
 
-	<!--
-		Somente as permissões estritamente necessárias.
-		Google Play penaliza apps com permissões desnecessárias.
-	-->
-
-	<!-- Salvar e carregar replays / scores -->
-	<permission name="android.permission.READ_MEDIA_AUDIO"   />
-	<!-- Vibrar no device ao errar nota (opcional, boa UX) -->
-	<permission name="android.permission.VIBRATE"            />
-	<!-- Manter CPU ativa durante gameplay (evita drops de FPS por sleep) -->
-	<permission name="android.permission.WAKE_LOCK"          />
-
-	<!--
-		READ/WRITE_EXTERNAL_STORAGE são considerados "perigosos" pelo Google Play
-		e exigem justificativa na ficha da loja (Declaração de Permissões).
-		Se não precisar salvar arquivos fora do app, mantenha comentado.
-	-->
-	<!-- <permission name="android.permission.READ_EXTERNAL_STORAGE"  /> -->
-	<!-- <permission name="android.permission.WRITE_EXTERNAL_STORAGE" /> -->
-
-	<!-- ═══════════════════════ HAXEDEFINES ══════════════════════════════ -->
-
-	<!-- Input mobile: usa FlxTouch; desativa mouse e keyboard físico -->
-	<haxedef name="FLX_NO_MOUSE"    />
-	<haxedef name="FLX_NO_KEYBOARD" />
-
-	<!-- Desativa UI de foco perdido (desnecessária no Android) -->
+	<!-- ══════════════════ HAXEDEFINES ═══════════════════════════════════ -->
+	<haxedef name="FLX_NO_MOUSE"             />
+	<haxedef name="FLX_NO_KEYBOARD"          />
 	<haxedef name="FLX_NO_FOCUS_LOST_SCREEN" />
-
-	<!-- Sem debug overlay em release -->
-	<haxedef name="FLX_NO_DEBUG" unless="debug" />
-
-	<!-- GC de blocos grandes — melhora perf em devices com pouca RAM -->
-	<haxedef name="HXCPP_GC_BIG_BLOCKS" />
-
-	<!-- Nape physics release (perf) -->
+	<haxedef name="FLX_NO_DEBUG"  unless="debug" />
+	<haxedef name="HXCPP_GC_BIG_BLOCKS"     />
 	<haxedef name="NAPE_RELEASE_BUILD" unless="debug" />
+	<haxedef name="FEATURE_MULTITHREADING"   />
+	<haxedef name="KADE_ANDROID"             />
 
-	<!-- FEATURES — somente as suportadas no Android -->
-	<!-- Discord: DESATIVADO (sem desktop SDK)           -->
-	<!-- <haxedef name="FEATURE_DISCORD" />              -->
-
-	<!-- Filesystem: DESATIVADO (assets embutidos no APK) -->
-	<!-- <haxedef name="FEATURE_FILESYSTEM" />           -->
-
-	<!-- Lua Modcharts: DESATIVADO (linc_luajit não suporta Android) -->
-	<!-- <haxedef name="FEATURE_LUAMODCHART" />          -->
-
-	<!-- WebM: DESATIVADO (extension-webm não compila para Android) -->
-	<!-- <haxedef name="FEATURE_WEBM" />                 -->
-
-	<!-- StepMania: DESATIVADO (requer filesystem) -->
-	<!-- <haxedef name="FEATURE_STEPMANIA" />            -->
-
-	<!-- Multithreading: ATIVADO (Android é cpp target) -->
-	<haxedef name="FEATURE_MULTITHREADING" />
-
-	<!-- Mods: DESATIVADO no Android -->
-	<!-- <haxedef name="FEATURE_MODCORE" />              -->
-
-	<!-- Sinaliza para o código-fonte que é build Android -->
-	<haxedef name="KADE_ANDROID" />
-
-	<!-- ═════════════════════ OTIMIZAÇÕES DE BUILD ═══════════════════════ -->
-
-	<!-- Remove traces em release (reduz tamanho do binário) -->
-	<haxeflag name="--no-traces" unless="debug" />
-
-	<!-- Dead Code Elimination completo em release -->
-	<haxeflag name="--dce full" unless="debug" />
-
-	<!-- Otimização máxima do compilador C++ -->
-	<haxedef name="HXCPP_OPTIMIZE_LEVEL" value="3" unless="debug" />
-
-	<!-- ═══════════════════ ASSINATURA (RELEASE) ═════════════════════════
-		Para publicar na Google Play, configure sua keystore:
-
-		1. Gere a keystore (uma vez):
-		   keytool -genkey -v -keystore kadeengine.keystore
-		              -alias kadeengine -keyalg RSA -keysize 2048
-		              -validity 10000
-
-		2. Descomente e preencha abaixo:
-
-	<certificate
-		path="kadeengine.keystore"
-		alias="kadeengine"
-		password="SUA_SENHA"
-		alias-password="SUA_SENHA_DO_ALIAS"
-		if="release"
-	/>
-
-		Ou use variáveis de ambiente para não expor senhas no repositório:
-
-	<certificate
-		path="${KEYSTORE_PATH}"
-		alias="${KEYSTORE_ALIAS}"
-		password="${KEYSTORE_PASSWORD}"
-		alias-password="${KEYSTORE_ALIAS_PASSWORD}"
-		if="release"
-	/>
-	═══════════════════════════════════════════════════════════════════════ -->
+	<!-- ══════════════════ OTIMIZAÇÕES ═══════════════════════════════════ -->
+	<haxeflag name="--no-traces"  unless="debug" />
+	<haxeflag name="--dce full"   unless="debug" />
+	<haxedef  name="HXCPP_OPTIMIZE_LEVEL" value="3" unless="debug" />
 
 </project>
