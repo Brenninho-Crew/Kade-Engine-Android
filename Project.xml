@@ -20,11 +20,10 @@
 	<set name="BUILD_DIR" value="export/android/debug"   if="debug"   />
 	<set name="BUILD_DIR" value="export/android/release"  unless="debug" />
 
-	<!-- ══════════════════ FONTES DO CÓDIGO HAXE ═════════════════════════ -->
-	<!-- SEM ISSO O LIME REJEITA O PROJETO -->
+	<!-- ══════════════════ FONTES DO CÓDIGO HAXE ════════════════════════ -->
 	<source path="source" />
 
-	<!-- ══════════════════════════ JANELA ════════════════════════════════ -->
+	<!-- ══════════════════════════ JANELA ═══════════════════════════════ -->
 	<window
 		width="1280"
 		height="720"
@@ -40,17 +39,13 @@
 		width="0"
 		height="0"
 		resizable="false"
-		antialiasing="false"
 	/>
 
-	<!-- ══════════════════════ ASSETS ════════════════════════════════════ -->
-	<!-- Fontes sempre embutidas -->
+	<!-- ══════════════════════ ASSETS ═══════════════════════════════════ -->
 	<assets path="assets/fonts" embed="true" />
 
-	<!-- Preload — .ogg excluído, Android usa .mp3 -->
 	<assets path="assets/preload" rename="assets" exclude="*.ogg" />
 
-	<!-- Bibliotecas — preload=true embute no APK, nada é extraído -->
 	<define name="PRELOAD_ALL" />
 	<section if="PRELOAD_ALL">
 		<library name="songs"    preload="true" />
@@ -91,8 +86,19 @@
 	<haxelib name="flixel-addons" />
 	<haxelib name="flixel-ui"     />
 	<haxelib name="hscript"       />
-	<!-- actuate, extension-webm, discord_rpc, linc_luajit,
-	     hxvm-luajit, polymod: incompatíveis com Android — omitidos -->
+	<!--
+		polymod: Debug.hx importa diretamente — precisa estar presente.
+		No Android não lê mods do disco, mas precisa compilar.
+	-->
+	<haxelib name="polymod"       />
+
+	<!--
+		FLX_NO_MOUSE e FLX_NO_KEYBOARD REMOVIDOS:
+		O código-fonte usa FlxG.keys e FlxG.mouse diretamente sem guards,
+		então desativar essas APIs causa erros de compilação.
+		O teclado/mouse simplesmente não dispara eventos em devices touch —
+		não é necessário desativar via define.
+	-->
 
 	<!-- ══════════════════ ANDROID SDK ═══════════════════════════════════ -->
 	<android
@@ -107,8 +113,6 @@
 	<permission name="android.permission.WAKE_LOCK" />
 
 	<!-- ══════════════════ HAXEDEFINES ═══════════════════════════════════ -->
-	<haxedef name="FLX_NO_MOUSE"             />
-	<haxedef name="FLX_NO_KEYBOARD"          />
 	<haxedef name="FLX_NO_FOCUS_LOST_SCREEN" />
 	<haxedef name="FLX_NO_DEBUG"  unless="debug" />
 	<haxedef name="HXCPP_GC_BIG_BLOCKS"     />
@@ -117,8 +121,9 @@
 	<haxedef name="KADE_ANDROID"             />
 
 	<!-- ══════════════════ OTIMIZAÇÕES ═══════════════════════════════════ -->
-	<haxeflag name="--no-traces"  unless="debug" />
-	<haxeflag name="--dce full"   unless="debug" />
+	<!-- --no-traces depreciado no Lime 7.9 — usar define no-traces -->
+	<haxedef  name="no-traces"              unless="debug" />
+	<haxeflag name="--dce full"             unless="debug" />
 	<haxedef  name="HXCPP_OPTIMIZE_LEVEL" value="3" unless="debug" />
 
 </project>
