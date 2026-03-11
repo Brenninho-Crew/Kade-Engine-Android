@@ -19,87 +19,112 @@ import openfl.events.Event;
 
 class Main extends Sprite
 {
-	var gameWidth:Int = 1280; // Width of the game in pixels (might be less / more in actual pixels depending on your zoom).
-	var gameHeight:Int = 720; // Height of the game in pixels (might be less / more in actual pixels depending on your zoom).
-	var initialState:Class<FlxState> = TitleState; // The FlxState the game starts with.
-	var zoom:Float = -1; // If -1, zoom is automatically calculated to fit the window dimensions.
-	var framerate:Int = 120; // How many frames per second the game should run at.
-	var skipSplash:Bool = true; // Whether to skip the flixel splash screen that appears in release mode.
-	var startFullscreen:Bool = false; // Whether to start the game in fullscreen on desktop targets
+	var gameWidth:Int  = 1280;
+	var gameHeight:Int = 720;
+	var initialState:Class<FlxState> = TitleState;
+	var zoom:Float     = -1;
 
-	public static var bitmapFPS:Bitmap;
+	/**
+	 * No Android, o framerate é limitado a 60 pelo compilador
+	 * (veja setupGame). Em desktop/web pode subir até 120.
+	 */
+	var framerate:Int  = 120;
+
+	var skipSplash:Bool       = true;
+	var startFullscreen:Bool  = false;
+
+	// ─── Statics ───────────────────────────────────────────────────────────────
 
 	public static var instance:Main;
 
-	public static var watermarks = true; // Whether to put Kade Engine literally anywhere
+	/** Apenas instanciado em desktop/html5 — nunca em mobile. */
+	public static var bitmapFPS:Bitmap;
 
-	// You can pretty much ignore everything from here on - your code should go in your states.
+	public static var watermarks:Bool = true;
+
+	/**
+	 * WebmHandler é desktop-only (extension-webm não compila pra Android).
+	 * A flag FEATURE_WEBM já protege o código no resto do projeto;
+	 * aqui garantimos que o campo nem existe em builds mobile.
+	 */
+	#if FEATURE_WEBM
+	public static var webmHandler:WebmHandler;
+	#end
+
+	// ─── Entry point ───────────────────────────────────────────────────────────
 
 	public static function main():Void
 	{
-		// quick checks
-
 		Lib.current.addChild(new Main());
 	}
 
 	public function new()
 	{
 		instance = this;
-
 		super();
 
 		if (stage != null)
-		{
 			init();
-		}
 		else
-		{
 			addEventListener(Event.ADDED_TO_STAGE, init);
-		}
 	}
 
-	public static var webmHandler:WebmHandler;
+	// ─── Init ──────────────────────────────────────────────────────────────────
 
 	private function init(?E:Event):Void
 	{
 		if (hasEventListener(Event.ADDED_TO_STAGE))
-		{
 			removeEventListener(Event.ADDED_TO_STAGE, init);
-		}
 
 		setupGame();
 	}
 
 	private function setupGame():Void
 	{
-		var stageWidth:Int = Lib.current.stage.stageWidth;
+		var stageWidth:Int  = Lib.current.stage.stageWidth;
 		var stageHeight:Int = Lib.current.stage.stageHeight;
 
+		// ── Zoom automático ─────────────────────────────────────────────────────
 		if (zoom == -1)
 		{
-			var ratioX:Float = stageWidth / gameWidth;
+			var ratioX:Float = stageWidth  / gameWidth;
 			var ratioY:Float = stageHeight / gameHeight;
-			zoom = Math.min(ratioX, ratioY);
-			gameWidth = Math.ceil(stageWidth / zoom);
+			zoom       = Math.min(ratioX, ratioY);
+			gameWidth  = Math.ceil(stageWidth  / zoom);
 			gameHeight = Math.ceil(stageHeight / zoom);
 		}
 
+		// ── Framerate ───────────────────────────────────────────────────────────
+		// cpp (Windows/Linux/Mac/Android) suporta >60; outros targets limitam a 60.
 		#if !cpp
 		framerate = 60;
 		#end
 
-		// Run this first so we can see logs.
+		// No Android 120 fps é raro e drena bateria — limitamos a 60 por padrão.
+		// Remova este bloco se quiser deixar o usuário escolher nas opções.
+		#if android
+		framerate = 60;
+		#end
+
+		// ── Debug / Log (sem acesso a disco no Android — usa logcat) ────────────
 		Debug.onInitProgram();
 
-		// Gotta run this before any assets get loaded.
+		// ── ModCore ─────────────────────────────────────────────────────────────
+		// ModCore usa o sistema de arquivos nativo para descobrir pastas de mods.
+		// No Android os assets ficam dentro do APK (AssetManager), por isso
+		// ModCore é completamente ignorado — nenhum arquivo é extraído.
+		#if FEATURE_MODCORE
 		ModCore.initialize();
+		#end
 
+		// ── FPS counter (desktop/html5 apenas) ──────────────────────────────────
 		#if !mobile
 		fpsCounter = new KadeEngineFPS(10, 3, 0xFFFFFF);
-		bitmapFPS = ImageOutline.renderImage(fpsCounter, 1, 0x000000, true);
+		bitmapFPS  = ImageOutline.renderImage(fpsCounter, 1, 0x000000, true);
 		bitmapFPS.smoothing = true;
 		#end
 
+		// ── FlxGame ─────────────────────────────────────────────────────────────
 		game = new FlxGame(gameWidth, gameHeight, initialState, zoom, framerate, framerate, skipSplash, startFullscreen);
 		addChild(game);
 
@@ -108,19 +133,27 @@ class Main extends Sprite
 		toggleFPS(FlxG.save.data.fps);
 		#end
 
-		// Finish up loading debug tools.
+		// ── Fim do boot ─────────────────────────────────────────────────────────
 		Debug.onGameStart();
 	}
 
+	// ─── Campos privados ───────────────────────────────────────────────────────
+
 	var game:FlxGame;
 
+	#if !mobile
 	var fpsCounter:KadeEngineFPS;
+	#end
 
-	// taken from forever engine, cuz optimization very pog.
-	// thank you shubs :)
-	public static function dumpCache()
+	// ─── API pública ───────────────────────────────────────────────────────────
+
+	/**
+	 * Libera bitmaps em cache manualmente.
+	 * Útil após trocar de semana/fase para evitar OOM no Android.
+	 * Crédito: Forever Engine / Shubs.
+	 */
+	public static function dumpCache():Void
 	{
-		///* SPECIAL THANKS TO HAYA
 		@:privateAccess
 		for (key in FlxG.bitmap._cache.keys())
 		{
@@ -133,19 +166,25 @@ class Main extends Sprite
 			}
 		}
 		Assets.cache.clear("songs");
-		// */
 	}
 
 	public function toggleFPS(fpsEnabled:Bool):Void
 	{
+		#if !mobile
+		if (fpsCounter != null)
+			fpsCounter.visible = fpsEnabled;
+		#end
 	}
 
-	public function changeFPSColor(color:FlxColor)
+	public function changeFPSColor(color:FlxColor):Void
 	{
-		fpsCounter.textColor = color;
+		#if !mobile
+		if (fpsCounter != null)
+			fpsCounter.textColor = color;
+		#end
 	}
 
-	public function setFPSCap(cap:Float)
+	public function setFPSCap(cap:Float):Void
 	{
 		openfl.Lib.current.stage.frameRate = cap;
 	}
@@ -157,6 +196,10 @@ class Main extends Sprite
 
 	public function getFPS():Float
 	{
-		return fpsCounter.currentFPS;
+		#if !mobile
+		if (fpsCounter != null)
+			return fpsCounter.currentFPS;
+		#end
+		return openfl.Lib.current.stage.frameRate;
 	}
 }
